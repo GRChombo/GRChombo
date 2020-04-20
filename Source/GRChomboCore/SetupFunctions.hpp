@@ -17,6 +17,7 @@ using std::endl;
 #include "DerivativeSetup.hpp"
 #include "GRAMR.hpp"
 #include "GRParmParse.hpp"
+#include "UserRestart.hpp"
 
 #include "simd.hpp"
 
@@ -101,6 +102,12 @@ void setupAMRObject(GRAMR &gr_amr, AMRLevelFactory &a_factory)
     GRParmParse pp;
     ChomboParameters chombo_params(pp);
 
+    // remove restart trigger file
+    if (chombo_params.allow_user_restart && UserRestart::activate())
+    {
+        UserRestart::remove_trigger(chombo_params.restart_trigger_file);
+    }
+
     // set size of box
     Box problem_domain(IntVect::Zero, chombo_params.ivN);
     ProblemDomain physdomain(problem_domain);
@@ -114,6 +121,9 @@ void setupAMRObject(GRAMR &gr_amr, AMRLevelFactory &a_factory)
     // Define the AMR object
     gr_amr.define(chombo_params.max_level, chombo_params.ref_ratios, physdomain,
                   &a_factory);
+
+    // Need to be able to cleanly stop evolutions if the user wants to restart
+    gr_amr.allowEvolutionStop(chombo_params.allow_user_restart);
 
     // To preserve proper nesting we need to know the maximum ref_ratio, this
     // is now hard coded to 2 in the base params

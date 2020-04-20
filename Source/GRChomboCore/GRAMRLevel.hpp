@@ -16,6 +16,7 @@
 #include "LevelFluxRegister.H" //We don't actually use flux conservation but Chombo assumes we do
 #include "LevelRK4.H"
 #include "SimulationParameters.hpp"
+#include "UserRestart.hpp"
 #include "UserVariables.hpp" // need NUM_VARS
 #include <sys/time.h>
 
@@ -77,6 +78,10 @@ class GRAMRLevel : public AMRLevel, public InterpSource
     virtual Real computeInitialDt();
 
     DisjointBoxLayout loadBalance(const Vector<Box> &a_grids);
+
+    /// return true on the coarsest level in order to stop the evolution
+    /// currently implements user restarting
+    virtual bool stopEvolution(bool &a_write_checkpoint);
 
 #ifdef CH_USE_HDF5
     virtual void writeCheckpointHeader(HDF5Handle &a_handle) const;

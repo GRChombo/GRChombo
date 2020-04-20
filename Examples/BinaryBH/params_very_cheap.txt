@@ -2,6 +2,8 @@ verbosity = 0
 chk_prefix = BinaryBH_
 plot_prefix = BinaryBHPlot_
 #restart_file = BinaryBH_000360.3d.hdf5
+allow_user_restart = 1
+#restart_trigger_file = GRCHOMBO_RESTART
 
 # Set up grid spacings and regrid params
 # NB - the N values need to be multiples of block_factor
@@ -25,8 +27,8 @@ max_level = 1
 regrid_interval = 1 1 1 1 0 0 0 0 0
 
 #Max and min box sizes
-max_grid_size = 32
-block_factor = 4
+max_box_size = 32
+min_box_size = 4
 tag_buffer_size = 3
 
 # Set up time steps
@@ -38,6 +40,36 @@ checkpoint_interval = 1
 plot_interval = 0
 dt_multiplier = 0.25
 stop_time = 10.0
+
+# boundaries and periodicity of grid
+# Periodic directions - 0 = false, 1 = true
+isPeriodic = 1 1 1
+# if not periodic, then specify the boundary type
+# 0 = static, 1 = sommerfeld, 2 = reflective
+# (see BoundaryConditions.hpp for details)
+hi_boundary = 1 1 1
+lo_boundary = 1 1 1
+
+# if reflective boundaries selected, must set
+# parity of all vars (in order given by UserVariables.hpp)
+# 0 = even
+# 1,2,3 = odd x, y, z
+# 4,5,6 = odd xy, yz, xz
+vars_parity            = 0 0 4 6 0 5 0    #chi and hij
+                         0 0 4 6 0 5 0    #K and Aij
+                         0 1 2 3          #Theta and Gamma
+                         0 1 2 3 1 2 3    #lapse shift and B
+                         0 1 2 3          #Ham and Mom
+                         0 0              #Weyl
+
+# if sommerfeld boundaries selected, must select
+# asymptotic values (in order given by UserVariables.hpp)
+vars_asymptotic_values = 1.0 1.0 0.0 0.0 1.0 0.0 1.0 #chi and hij
+                         0.0 0.0 0.0 0.0 0.0 0.0 0.0 #K and Aij
+                         0.0 0.0 0.0 0.0             #Theta and Gamma
+                         1.0 0.0 0.0 0.0 0.0 0.0 0.0 #lapse shift and B
+                         0.0 0.0 0.0 0.0             #Ham and Mom
+                         0.0 0.0                     #Weyl
 
 nan_check = 1
 
@@ -55,7 +87,8 @@ eta = 1.82
 kappa1 = 0.1
 kappa2 = 0
 kappa3 = 1.
-covariantZ4 = 1 # 0: default. 1: dampk1 -> dampk1/lapse  
+covariantZ4 = 1 # 0: default. 1: dampk1 -> dampk1/lapse
 
 #coefficient for KO numerical dissipation
+# See Alcubierre p344
 sigma = 0.3

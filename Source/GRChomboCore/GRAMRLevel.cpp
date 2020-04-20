@@ -411,6 +411,24 @@ DisjointBoxLayout GRAMRLevel::loadBalance(const Vector<Box> &a_grids)
     return dbl;
 }
 
+bool GRAMRLevel::stopEvolution(bool &a_write_checkpoint)
+{
+    if (m_p.allow_user_restart)
+    {
+        UserRestart::check(m_p.restart_trigger_file);
+        if (UserRestart::activate())
+        {
+            a_write_checkpoint = false;
+            pout() << "GRChombo restarting..." << endl;
+        }
+        return UserRestart::activate();
+    }
+    else
+    {
+        return false;
+    }
+}
+
 // write checkpoint header
 #ifdef CH_USE_HDF5
 void GRAMRLevel::writeCheckpointHeader(HDF5Handle &a_handle) const

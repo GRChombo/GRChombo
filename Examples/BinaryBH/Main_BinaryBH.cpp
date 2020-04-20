@@ -7,6 +7,7 @@
 #include "parstream.H" //Gives us pout()
 #include <chrono>
 #include <iostream>
+#include <unistd.h>
 
 #include "BHAMR.hpp"
 #include "DefaultLevelFactory.hpp"
@@ -19,40 +20,43 @@
 
 int runGRChombo(int argc, char *argv[])
 {
-    // Load the parameter file and construct the SimulationParameter class
-    // To add more parameters edit the SimulationParameters file.
-    char *in_file = argv[1];
-    GRParmParse pp(argc - 2, argv + 2, NULL, in_file);
-    SimulationParameters sim_params(pp);
+    do
+    {
+        // Load the parameter file and construct the SimulationParameter class
+        // To add more parameters edit the SimulationParameters file.
+        char *in_file = argv[1];
+        GRParmParse pp(argc - 2, argv + 2, NULL, in_file);
+        SimulationParameters sim_params(pp);
 
-    // The line below selects the problem that is simulated
-    // (To simulate a different problem, define a new child of AMRLevel
-    // and an associated LevelFactory)
-    BHAMR gr_amr;
-    DefaultLevelFactory<BinaryBHLevel> binary_bh_level_fact(gr_amr, sim_params);
-    setupAMRObject(gr_amr, binary_bh_level_fact);
+        // The line below selects the problem that is simulated
+        // (To simulate a different problem, define a new child of AMRLevel
+        // and an associated LevelFactory)
+        BHAMR bh_amr;
+        DefaultLevelFactory<BinaryBHLevel> binary_bh_level_fact(bh_amr,
+                                                                sim_params);
+        setupAMRObject(bh_amr, binary_bh_level_fact);
 
-    // call this after amr object setup so grids known
-    // and need it to stay in scope throughout run
-    AMRInterpolator<Lagrange<4>> interpolator(
-        gr_amr, sim_params.origin, sim_params.dx, sim_params.verbosity);
-    gr_amr.set_interpolator(&interpolator);
+        // call this after amr object setup so grids known
+        // and need it to stay in scope throughout run
+        AMRInterpolator<Lagrange<4>> interpolator(
+            bh_amr, sim_params.origin, sim_params.dx, sim_params.verbosity);
+        bh_amr.set_interpolator(&interpolator);
 
-    using Clock = std::chrono::steady_clock;
-    using Minutes = std::chrono::duration<double, std::ratio<60, 1>>;
+        using Clock = std::chrono::steady_clock;
+        using Minutes = std::chrono::duration<double, std::ratio<60, 1>>;
 
-    std::chrono::time_point<Clock> start_time = Clock::now();
+        std::chrono::time_point<Clock> start_time = Clock::now();
 
-    gr_amr.run(sim_params.stop_time, sim_params.max_steps);
+        bh_amr.run(sim_params.stop_time, sim_params.max_steps);
 
-    auto now = Clock::now();
-    auto duration = std::chrono::duration_cast<Minutes>(now - start_time);
-    pout() << "Total simulation time (mins): " << duration.count() << ".\n";
+        auto now = Clock::now();
+        auto duration = std::chrono::duration_cast<Minutes>(now - start_time);
+        pout() << "Total simulation time (mins): " << duration.count() << ".\n";
 
-    gr_amr.conclude();
+        bh_amr.conclude();
 
-    CH_TIMER_REPORT(); // Report results when running with Chombo timers.
-
+        CH_TIMER_REPORT(); // Report results when running with Chombo timers.
+    } while (UserRestart::activate());
     return 0;
 }
 

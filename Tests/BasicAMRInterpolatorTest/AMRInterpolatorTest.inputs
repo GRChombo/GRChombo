@@ -16,7 +16,7 @@ ref_ratio = 2 2 2 2 2 2 2 2 2
 isPeriodic = 1 1 1
 
 #Max and min box sizes
-max_grid_size = 32
-block_factor = 4
+max_box_size = 32
+min_box_size = 4
 tag_buffer_size = 3
 checkpoint_interval = 1
