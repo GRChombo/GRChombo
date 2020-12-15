@@ -64,12 +64,10 @@ vars_parity            = 0 0 4 6 0 5 0    #chi and hij
 vars_parity_diagnostic = 0 1 2 3          #Ham and Mom
 
 # if sommerfeld boundaries selected, must select 
-# asymptotic values (in order given by UserVariables.hpp)
-vars_asymptotic_values = 1.0 1.0 0.0 0.0 1.0 0.0 1.0 #chi and hij
-                         0.0 0.0 0.0 0.0 0.0 0.0 0.0 #K and Aij
-                         0.0 0.0 0.0 0.0             #Theta and Gamma
-                         1.0 0.0 0.0 0.0 0.0 0.0 0.0 #lapse shift and B
-                         #0.0 0.0 0.0 0.0             #Ham and Mom
+# non zero asymptotic values
+num_nonzero_asymptotic_vars = 5
+nonzero_asymptotic_vars = chi h11 h22 h33 lapse
+nonzero_asymptotic_values = 1.0 1.0 1.0 1.0 1.0
 
 # Set up time steps
 # dt will be dx*dt_multiplier on each grid level
@@ -100,7 +98,6 @@ kappa3 = 0
 covariantZ4 = 0 # 0: default. 1: dampk1 -> dampk1/lapse
 
 # coefficient for KO numerical dissipation
-# NB must be less than 0.5 for stability
 sigma = 0.3
 
 #extraction params

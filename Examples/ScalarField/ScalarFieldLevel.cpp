@@ -17,13 +17,14 @@
 #include "NewMatterConstraints.hpp"
 
 // For tag cells
-#include "ChiAndPhiTaggingCriterion.hpp"
+#include "FixedGridsTaggingCriterion.hpp"
 
 // Problem specific includes
-#include "ChiRelaxation.hpp"
 #include "ComputePack.hpp"
+#include "GammaCalculator.hpp"
+#include "InitialScalarData.hpp"
+#include "KerrBH.hpp"
 #include "Potential.hpp"
-#include "ScalarBubble.hpp"
 #include "ScalarField.hpp"
 #include "SetValue.hpp"
 
@@ -50,10 +51,15 @@ void ScalarFieldLevel::initialData()
         pout() << "ScalarFieldLevel::initialData " << m_level << endl;
 
     // First set everything to zero then initial conditions for scalar field -
-    // here a bubble
-    BoxLoops::loop(make_compute_pack(SetValue(0.0),
-                                     ScalarBubble(m_p.initial_params, m_dx)),
-                   m_state_new, m_state_new, INCLUDE_GHOST_CELLS);
+    // here a Kerr BH and a scalar field profile
+    BoxLoops::loop(
+        make_compute_pack(SetValue(0.), KerrBH(m_p.kerr_params, m_dx),
+                          InitialScalarData(m_p.initial_params, m_dx)),
+        m_state_new, m_state_new, INCLUDE_GHOST_CELLS);
+
+    fillAllGhosts();
+    BoxLoops::loop(GammaCalculator(m_dx), m_state_new, m_state_new,
+                   EXCLUDE_GHOST_CELLS);
 }
 
 // Things to do before outputting a checkpoint file
@@ -72,41 +78,19 @@ void ScalarFieldLevel::prePlotLevel()
 void ScalarFieldLevel::specificEvalRHS(GRLevelData &a_soln, GRLevelData &a_rhs,
                                        const double a_time)
 {
+    // Enforce trace free A_ij and positive chi and alpha
+    BoxLoops::loop(
+        make_compute_pack(TraceARemoval(),
+                          PositiveChiAndAlpha(m_p.min_chi, m_p.min_lapse)),
+        a_soln, a_soln, INCLUDE_GHOST_CELLS);
 
-    // Relaxation function for chi - this will eventually be done separately
-    // with hdf5 as input
-    if (m_time < m_p.relaxtime)
-    {
-        // Calculate chi relaxation right hand side
-        // Note this assumes conformal chi and Mom constraint trivially
-        // satisfied  No evolution in other variables, which are assumed to
-        // satisfy constraints per initial conditions
-        Potential potential(m_p.potential_params);
-        ScalarFieldWithPotential scalar_field(potential);
-        ChiRelaxation<ScalarFieldWithPotential> relaxation(
-            scalar_field, m_dx, m_p.relaxspeed, m_p.G_Newton);
-        SetValue set_other_values_zero(0.0, Interval(c_h11, NUM_VARS - 1));
-        auto compute_pack1 =
-            make_compute_pack(relaxation, set_other_values_zero);
-        BoxLoops::loop(compute_pack1, a_soln, a_rhs, EXCLUDE_GHOST_CELLS);
-    }
-    else
-    {
-
-        // Enforce trace free A_ij and positive chi and alpha
-        BoxLoops::loop(
-            make_compute_pack(TraceARemoval(),
-                              PositiveChiAndAlpha(m_p.min_chi, m_p.min_lapse)),
-            a_soln, a_soln, INCLUDE_GHOST_CELLS);
-
-        // Calculate MatterCCZ4 right hand side with matter_t = ScalarField
-        Potential potential(m_p.potential_params);
-        ScalarFieldWithPotential scalar_field(potential);
-        MatterCCZ4<ScalarFieldWithPotential> my_ccz4_matter(
-            scalar_field, m_p.ccz4_params, m_dx, m_p.sigma, m_p.formulation,
-            m_p.G_Newton);
-        BoxLoops::loop(my_ccz4_matter, a_soln, a_rhs, EXCLUDE_GHOST_CELLS);
-    }
+    // Calculate MatterCCZ4 right hand side with matter_t = ScalarField
+    Potential potential(m_p.potential_params);
+    ScalarFieldWithPotential scalar_field(potential);
+    MatterCCZ4<ScalarFieldWithPotential> my_ccz4_matter(
+        scalar_field, m_p.ccz4_params, m_dx, m_p.sigma, m_p.formulation,
+        m_p.G_Newton);
+    BoxLoops::loop(my_ccz4_matter, a_soln, a_rhs, EXCLUDE_GHOST_CELLS);
 }
 
 // Things to do at ODE update, after soln + rhs
@@ -120,7 +104,7 @@ void ScalarFieldLevel::specificUpdateODE(GRLevelData &a_soln,
 void ScalarFieldLevel::computeTaggingCriterion(FArrayBox &tagging_criterion,
                                                const FArrayBox &current_state)
 {
-    BoxLoops::loop(ChiAndPhiTaggingCriterion(m_dx, m_p.regrid_threshold_chi,
-                                             m_p.regrid_threshold_phi),
-                   current_state, tagging_criterion);
+    BoxLoops::loop(
+        FixedGridsTaggingCriterion(m_dx, m_level, 2.0 * m_p.L, m_p.center),
+        current_state, tagging_criterion);
 }

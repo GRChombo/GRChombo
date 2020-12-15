@@ -1,0 +1,99 @@
+#Params for runtime inputs
+
+verbosity = 0
+integral_filename = RhoIntegral
+chk_prefix = /home/dc-cui1/rds/rds-dirac-dp131/dc-cui1/Kerr/Kerr0_chk
+plot_prefix = /home/dc-cui1/rds/rds-dirac-dp131/dc-cui1/Kerr/Kerr0_plt
+#restart_file = /home/dc-cui1/rds/rds-dirac-dp131/dc-cui1/Kerr/Kerr0_chk000850.3d.hdf5
+
+# Set up grid spacings and regrid params
+# NB - the N values need to be multiples of block_factor
+N1 = 64
+N2 = 64
+N3 = 64
+
+# Length of longest box side, dx_coarsest = L/N(max)
+# NB if non cubic, this determines dx for all sides
+L = 2048
+
+# Regridding
+tag_buffer_size = 0
+regrid_length = 2048
+
+# Level data
+# Maximum number of times you can regrid above coarsest level
+max_level = 6 # There are (max_level+1) grids, so min is zero
+# Frequency of regridding at each level
+# Need one for each level, ie max_level+1 items
+# Generally you do not need to regrid frequently on every level
+regrid_interval = 0 0 0 0 0 0 0 0 0 0 0
+
+# Max box size
+max_grid_size = 16
+# Min box size
+block_factor = 16
+tag_buffer_size = 0
+
+#boundaries and periodicity of grid
+#Periodic directions - 0 = false, 1 = true
+isPeriodic = 0 0 0
+
+# if not periodic, then specify the boundary type
+# 0 = static, 1 = sommerfeld, 2 = reflective, 3 = extrapolating
+# (see BoundaryConditions.hpp for details)
+hi_boundary = 3 3 3
+lo_boundary = 3 3 3
+#center = 512.0 512.0 0.0
+
+# if reflective boundaries selected, must select 
+# parity values (in order given by UserVariables.hpp)
+# 0 = even
+# 1,2,3 = odd x, y, z
+# 4,5,6 = odd xy, yz, xz
+vars_parity            = 0 0 0 0   #phi and Pi
+vars_parity_diagnostic = 0 0 0 0 0 0 0 0    #chi and rho rhoJ
+
+# specify non zero asympotitic vars
+num_nonzero_asymptotic_vars = 0
+nonzero_asymptotic_vars = chi
+nonzero_asymptotic_values = 1.0
+
+# if mixed boundaries selected, must specify which are extrapolating
+# (the rest are assumed to be all sommerfeld)
+#num_extrapolating_vars = 2
+#extrapolating_vars = phi Pi
+extrapolation_order = 1
+
+# Set up time steps
+# dt will be dx*dt_multiplier on each grid level
+# HDF5files are written every dt = L/N*dt_multiplier*checkpoint_interval
+checkpoint_interval = 50
+plot_interval = 1
+num_plot_vars = 6
+plot_vars = phi_Re rho Edot xMom Stress Source
+dt_multiplier = 0.1
+stop_time = 100.0
+
+# coefficient for KO numerical dissipation
+# NB must be less than 0.5 for stability
+sigma = 1.0
+
+# SF Initial data
+scalar_mass = 0.05
+field_amplitude_re = 0.1
+field_amplitude_im = 0.0
+# not used
+f_axion = 0.0
+
+# Boosted BH initial data, boost in x direction, spin in z direction
+bh_mass = 1.0
+bh_spin = 0.0 # This is a, so needs to be <= M
+inner_r = 5.0
+outer_r = 500.0
+
+# for extraction
+activate_extraction = 1
+write_extraction = 0
+num_points_phi = 36
+num_points_t = 24
+zaxis_over_xaxis = 1.0

@@ -12,34 +12,32 @@ plot_prefix = ScalarFieldp_
 # NB - if you have a non-cubic grid, you can specify 'N1' or 'N1_full', 
 # 'N2' or 'N2_full' and 'N3' or 'N3_full' ( then dx_coarsest = L/N(max) )
 # NB - the N values need to be multiples of the block_factor
-N_full = 64
-L_full =  32
+N_full = 128
+L_full = 256
 
-# Regridding
-# Thresholds on the change across a cell which prompts regrid
-regrid_threshold_chi = 0.1
-regrid_threshold_phi = 0.01
+# Regridding - in this example use a fixed grid
+tag_buffer_size = 0
 
 # Level data
 # Maximum number of times you can regrid above coarsest level
-max_level = 2 # There are (max_level+1) grids, so min is zero
+max_level = 6 # There are (max_level+1) grids, so min is zero
 # Frequency of regridding at each level
 # Need one for each level, ie max_level+1 items
-# Generally you do not need to regrid frequently on every level
-regrid_interval = 32 16 8 4
+# in this example turn off regridding
+regrid_interval = 0 0 0 0 0 0 0
 # Max and min box size - for load balancing
-max_box_size = 32
-min_box_size = 8
+max_box_size = 16
+min_box_size = 16
 
 #boundaries and periodicity of grid
 #Periodic directions - 0 = false, 1 = true
 isPeriodic = 0 0 0
 # if not periodic, then specify the boundary type
 # 0 = static, 1 = sommerfeld, 2 = reflective
+# 3 = extrapolating, 4 = mixed
 # (see BoundaryConditions.hpp for details)
-hi_boundary = 1 1 1
+hi_boundary = 4 4 4
 lo_boundary = 2 2 2
-center = 0.0 0.0 0.0
 
 # if reflective boundaries selected, must set
 # parity of all vars (in order given by UserVariables.hpp)
@@ -55,23 +53,25 @@ vars_parity            = 0 0 4 6 0 5 0    #chi and hij
 vars_parity_diagnostic = 0 1 2 3          #Ham and Mom
 
 # if sommerfeld boundaries selected, must select
-# asymptotic values (in order given by UserVariables.hpp)
-vars_asymptotic_values = 1.0 1.0 0.0 0.0 1.0 0.0 1.0 #chi and hij
-                         0.0 0.0 0.0 0.0 0.0 0.0 0.0 #K and Aij
-                         0.0 0.0 0.0 0.0             #Theta and Gamma
-                         1.0 0.0 0.0 0.0 0.0 0.0 0.0 #lapse shift and B
-                         0.0 0.0                     #phi and Pi
-                         #0.0 0.0 0.0 0.0             #Ham and Mom
+# non zero asymptotic values
+num_nonzero_asymptotic_vars = 5
+nonzero_asymptotic_vars = chi h11 h22 h33 lapse
+nonzero_asymptotic_values = 1.0 1.0 1.0 1.0 1.0
+
+# for extrapolating vars
+extrapolation_order = 1
+num_extrapolating_vars = 2
+extrapolating_vars = phi Pi
 
 # Set up time steps
 # dt will be dx*dt_multiplier on each grid level
 # HDF5files are written every dt = L/N*dt_multiplier*checkpoint_interval
-checkpoint_interval = 100
-plot_interval = 10
+checkpoint_interval = 500
+plot_interval = 1
 num_plot_vars = 2
 plot_vars = chi phi
 dt_multiplier = 0.25
-stop_time = 10.0
+stop_time = 100.0
 
 #Lapse evolution
 lapse_power = 1.0
@@ -92,22 +92,20 @@ kappa3 = 0
 covariantZ4 = 0 # 0: default. 1: dampk1 -> dampk1/lapse
 
 # coefficient for KO numerical dissipation
-# NB must be less than 0.5 for stability
 sigma = 0.3
 
 # Change the gravitational constant of the Universe!
 # Default is 1.0, for standard geometric units
-# G_Newton = 1.0
+# Here we decouple the evolution so the scalar evolved on the
+# metric background without backreaction (this avoids the need 
+# to solve the constaints)
+G_Newton = 0.0
 
-# SF Initial data
-amplitudeSF = 0.001
-widthSF = 1.0
-r_zero = 5.0
-scalar_mass = 0.001
+# Scalar field initial data
+scalar_amplitude = 0.1
+scalar_width = 5.0
+scalar_mass = 0.2
 
-# Relaxation paramters
-# how long and how fast to relax
-# (should be non zero if starting from phi data
-# for which constraints not solved)
-relaxtime = 0.0
-relaxspeed = 0.01
+# Kerr data
+kerr_mass = 1.0
+kerr_spin = 0.0

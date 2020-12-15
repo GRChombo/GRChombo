@@ -12,8 +12,9 @@
 
 // Problem specific includes:
 #include "CCZ4.hpp"
+#include "InitialScalarData.hpp"
+#include "KerrBH.hpp"
 #include "Potential.hpp"
-#include "ScalarBubble.hpp"
 
 class SimulationParameters : public SimulationParametersBase
 {
@@ -26,33 +27,25 @@ class SimulationParameters : public SimulationParametersBase
 
     void readParams(GRParmParse &pp)
     {
-        // for regridding
-        pp.load("regrid_threshold_chi", regrid_threshold_chi);
-        pp.load("regrid_threshold_phi", regrid_threshold_phi);
-
-        // Initial and SF data
-        initial_params.centerSF =
+        // Initial scalar field data
+        initial_params.center =
             center; // already read in SimulationParametersBase
         pp.load("G_Newton", G_Newton, 1.0);
-        pp.load("amplitudeSF", initial_params.amplitudeSF);
-        pp.load("widthSF", initial_params.widthSF);
-        pp.load("r_zero", initial_params.r_zero);
+        pp.load("scalar_amplitude", initial_params.amplitude);
+        pp.load("scalar_width", initial_params.width);
         pp.load("scalar_mass", potential_params.scalar_mass);
 
-        // Relaxation params
-        pp.load("relaxtime", relaxtime);
-        pp.load("relaxspeed", relaxspeed);
+        // Initial Kerr data
+        pp.load("kerr_mass", kerr_params.mass, 1.0);
+        pp.load("kerr_spin", kerr_params.spin, 0.0);
+        pp.load("kerr_center", kerr_params.center, center);
     }
 
-    // Problem specific parameters
-    Real regrid_threshold_chi, regrid_threshold_phi;
-
-    // Initial data for matter and potential
+    // Initial data for matter and potential and BH
     double G_Newton;
-    ScalarBubble::params_t initial_params;
+    InitialScalarData::params_t initial_params;
     Potential::params_t potential_params;
-    // Relaxation params
-    Real relaxtime, relaxspeed;
+    KerrBH::params_t kerr_params;
 };
 
 #endif /* SIMULATIONPARAMETERS_HPP_ */

@@ -69,35 +69,8 @@ class ChomboParameters
         pp.load("write_plot_ghosts", write_plot_ghosts, false);
 
         // load vars to write to plot files
-        pp.load("num_plot_vars", num_plot_vars, 0);
-        std::vector<std::string> plot_var_names(num_plot_vars, "");
-        pp.load("plot_vars", plot_var_names, num_plot_vars, plot_var_names);
-        for (std::string var_name : plot_var_names)
-        {
-            // first assume plot_var is a normal evolution var
-            int var = UserVariables::variable_name_to_enum(var_name);
-            VariableType var_type = VariableType::evolution;
-            if (var < 0)
-            {
-                // if not an evolution var check if it's a diagnostic var
-                var = DiagnosticVariables::variable_name_to_enum(var_name);
-                if (var < 0)
-                {
-                    // it's neither :(
-                    pout() << "Variable with name " << var_name
-                           << " not found.\n";
-                }
-                else
-                {
-                    var_type = VariableType::diagnostic;
-                }
-            }
-            if (var >= 0)
-            {
-                plot_vars.emplace_back(var, var_type);
-            }
-        }
-        num_plot_vars = plot_vars.size();
+        UserVariables::load_vars_to_vector(pp, "plot_vars", "num_plot_vars",
+                                           plot_vars, num_plot_vars);
 
         // alias the weird chombo names to something more descriptive
         // for these box params, and default to some reasonable values

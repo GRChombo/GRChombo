@@ -69,7 +69,6 @@ vars_asymptotic_values = 1.0 1.0 0.0 0.0 1.0 0.0 1.0 #chi and hij
                          0.0 0.0 0.0 0.0 0.0 0.0 0.0 #K and Aij
                          0.0 0.0 0.0 0.0             #Theta and Gamma
                          1.0 0.0 0.0 0.0 0.0 0.0 0.0 #lapse shift and B
-                         #0.0 0.0 0.0 0.0             #Ham and Mom
 
 # Set up time steps
 # dt will be dx*dt_multiplier on each grid level

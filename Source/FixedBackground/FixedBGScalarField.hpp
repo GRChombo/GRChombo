@@ -3,9 +3,10 @@
  * Please refer to LICENSE in GRChombo's root directory.
  */
 
-#ifndef SCALARFIELD_HPP_
-#define SCALARFIELD_HPP_
+#ifndef FIXEDBGSCALARFIELD_HPP_
+#define FIXEDBGSCALARFIELD_HPP_
 
+#include "ADMFixedBGVars.hpp"
 #include "CCZ4Geometry.hpp"
 #include "DefaultPotential.hpp"
 #include "DimensionDefinitions.hpp"
@@ -29,15 +30,19 @@
      It assumes minimal coupling of the field to gravity.
      \sa MatterCCZ4(), ConstraintsMatter()
 */
-template <class potential_t = DefaultPotential> class ScalarField
+template <class potential_t = DefaultPotential> class FixedBGScalarField
 {
   protected:
     //! The local copy of the potential
     potential_t my_potential;
 
   public:
-    //!  Constructor of class ScalarField, inputs are the matter parameters.
-    ScalarField(const potential_t a_potential) : my_potential(a_potential) {}
+    //!  Constructor of class FixedBGScalarField, inputs are the matter
+    //!  parameters.
+    FixedBGScalarField(const potential_t a_potential)
+        : my_potential(a_potential)
+    {
+    }
 
     //! Structure containing the rhs variables for the matter fields
     template <class data_t> struct Vars
@@ -70,36 +75,49 @@ template <class potential_t = DefaultPotential> class ScalarField
         }
     };
 
+    // Struct for the non grid ADM vars
+    template <class data_t>
+    using MetricVars = typename ADMFixedBGVars::template Vars<data_t>;
+
     //! The function which calculates the EM Tensor, given the vars and
     //! derivatives, including the potential
     template <class data_t, template <typename> class vars_t>
     emtensor_t<data_t> compute_emtensor(
-        const vars_t<data_t> &vars,          //!< the value of the variables
+        const vars_t<data_t> &vars, //!< the value of the variables
+        const MetricVars<data_t>
+            &metric_vars, //!< the value of the metric variables
         const vars_t<Tensor<1, data_t>> &d1, //!< the value of the 1st derivs
-        const Tensor<2, data_t> &h_UU, //!< the inverse metric (raised indices)
-        const Tensor<3, data_t> &chris_ULL)
-        const; //!< the conformal christoffel symbol
+        const Tensor<2, data_t>
+            &gamma_UU, //!< the inverse metric (raised indices)
+        const Tensor<3, data_t> &chris_phys_ULL)
+        const; //!< the physical christoffel symbol
 
     //! The function which calculates the EM Tensor, given the vars and
     //! derivatives, excluding the potential
     template <class data_t, template <typename> class vars_t>
     static void emtensor_excl_potential(
-        emtensor_t<data_t> &out,             //!< the em tensor output
-        const vars_t<data_t> &vars,          //!< the value of the variables
-        const vars_t<Tensor<1, data_t>> &d1, //!< the value of the first derivs
-        const Tensor<2, data_t> &h_UU, //!< the inverse metric (raised indices).
+        emtensor_t<data_t> &out,    //!< the em tensor output
+        const vars_t<data_t> &vars, //!< the value of the variables
+        const MetricVars<data_t>
+            &metric_vars, //!< the value of the metric variables
+        const vars_t<Tensor<1, data_t>>
+            &d1, //!< the value of the first deriv of phi
+        const Tensor<2, data_t>
+            &gamma_UU, //!< the inverse metric (raised indices).
         const Tensor<3, data_t>
-            &chris_ULL); //!< the conformal christoffel symbol
+            &chris_phys_ULL); //!< the physical christoffel symbol
 
     //! The function which adds in the RHS for the matter field vars,
     //! including the potential
     template <class data_t, template <typename> class vars_t,
               template <typename> class diff2_vars_t,
               template <typename> class rhs_vars_t>
-    void add_matter_rhs(
-        rhs_vars_t<data_t> &total_rhs,       //!< value of the RHS for all vars
-        const vars_t<data_t> &vars,          //!< value of the variables
-        const vars_t<Tensor<1, data_t>> &d1, //!< value of the 1st derivs
+    void matter_rhs(
+        rhs_vars_t<data_t> &total_rhs, //!< value of the RHS for all vars
+        const vars_t<data_t> &vars,    //!< value of the variables
+        const MetricVars<data_t>
+            &metric_vars, //!< the value of the metric variables
+        const vars_t<Tensor<1, data_t>> &d1,       //!< value of the 1st derivs
         const diff2_vars_t<Tensor<2, data_t>> &d2, //!< value of the 2nd derivs
         const vars_t<data_t> &advec)
         const; //!< the value of the advection terms
@@ -112,11 +130,13 @@ template <class potential_t = DefaultPotential> class ScalarField
     static void matter_rhs_excl_potential(
         rhs_vars_t<data_t> &rhs, //!< the value of the RHS terms for the sf vars
         const vars_t<data_t> &vars, //!< the values of all the variables
-        const vars_t<Tensor<1, data_t>> &d1, //!< the value of the 1st derivs
+        const MetricVars<data_t>
+            &metric_vars, //!< the value of the metric variables
+        const vars_t<Tensor<1, data_t>> &d1,       //!< value of the 1st derivs
         const diff2_vars_t<Tensor<2, data_t>> &d2, //!< value of the 2nd derivs
         const vars_t<data_t> &advec);
 };
 
-#include "ScalarField.impl.hpp"
+#include "FixedBGScalarField.impl.hpp"
 
-#endif /* SCALARFIELD_HPP_ */
+#endif /* FIXEDBGSCALARFIELD_HPP_ */
