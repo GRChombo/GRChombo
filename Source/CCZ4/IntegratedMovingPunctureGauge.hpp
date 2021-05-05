@@ -77,7 +77,8 @@ class IntegratedMovingPunctureGauge
     inline void rhs_gauge(vars_t<data_t> &rhs, const vars_t<data_t> &vars,
                           const vars_t<Tensor<1, data_t>> &d1,
                           const diff2_vars_t<Tensor<2, data_t>> &d2,
-                          const vars_t<data_t> &advec) const
+                          const vars_t<data_t> &advec,
+                          const Cell<data_t> &current_cell) const
     {
         rhs.lapse = m_params.lapse_advec_coeff * advec.lapse -
                     m_params.lapse_coeff *

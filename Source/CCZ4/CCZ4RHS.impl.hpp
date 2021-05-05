@@ -16,9 +16,11 @@
 
 template <class gauge_t, class deriv_t>
 inline CCZ4RHS<gauge_t, deriv_t>::CCZ4RHS(
-    CCZ4_params_t<typename gauge_t::params_t> a_params, double a_dx,
-    double a_sigma, int a_formulation, double a_cosmological_constant)
-    : m_params(a_params), m_gauge(a_params), m_sigma(a_sigma),
+    CCZ4_params_t<typename gauge_t::params_t> a_params,
+    const gauge_t &a_gauge,
+    double a_dx, double a_sigma, int a_formulation,
+    double a_cosmological_constant)
+    : m_params(a_params), m_gauge(a_gauge), m_sigma(a_sigma),
       m_formulation(a_formulation),
       m_cosmological_constant(a_cosmological_constant), m_deriv(a_dx)
 {
@@ -37,6 +39,18 @@ inline CCZ4RHS<gauge_t, deriv_t>::CCZ4RHS(
 }
 
 template <class gauge_t, class deriv_t>
+template <typename dummy_t>
+inline CCZ4RHS<gauge_t, deriv_t>::CCZ4RHS(
+    CCZ4_params_t<typename gauge_t::params_t> a_params, double a_dx,
+    double a_sigma, int a_formulation, double a_cosmological_constant,
+    typename std::enable_if_t<std::is_constructible<dummy_t, params_t>::value>
+        *)
+    : CCZ4RHS(a_params, gauge_t(a_params), a_dx, a_sigma, a_formulation,
+              a_cosmological_constant)
+{
+}
+
+template <class gauge_t, class deriv_t>
 template <class data_t>
 void CCZ4RHS<gauge_t, deriv_t>::compute(Cell<data_t> current_cell) const
 {
@@ -47,7 +61,7 @@ void CCZ4RHS<gauge_t, deriv_t>::compute(Cell<data_t> current_cell) const
         m_deriv.template advection<Vars>(current_cell, vars.shift);
 
     Vars<data_t> rhs;
-    rhs_equation(rhs, vars, d1, d2, advec);
+    rhs_equation(rhs, vars, d1, d2, advec, current_cell);
 
     m_deriv.add_dissipation(rhs, current_cell, m_sigma);
 
@@ -61,7 +75,8 @@ void CCZ4RHS<gauge_t, deriv_t>::rhs_equation(
     vars_t<data_t> &rhs, const vars_t<data_t> &vars,
     const vars_t<Tensor<1, data_t>> &d1,
     const diff2_vars_t<Tensor<2, data_t>> &d2,
-    const vars_t<data_t> &advec) const
+    const vars_t<data_t> &advec,
+    const Cell<data_t> &current_cell) const
 {
     using namespace TensorAlgebra;
 
@@ -223,7 +238,7 @@ void CCZ4RHS<gauge_t, deriv_t>::rhs_equation(
 
     FOR1(i) { rhs.Gamma[i] = advec.Gamma[i] + Gammadot[i]; }
 
-    m_gauge.rhs_gauge(rhs, vars, d1, d2, advec);
+    m_gauge.rhs_gauge(rhs, vars, d1, d2, advec, current_cell);
 }
 
 #endif /* CCZ4RHS_IMPL_HPP_ */

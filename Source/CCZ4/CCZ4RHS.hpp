@@ -18,6 +18,7 @@
 #include "UserVariables.hpp" //This files needs NUM_VARS - total number of components
 
 #include <array>
+#include <type_traits>
 
 /// Base parameter struct for CCZ4
 /** This struct collects the gauge independent CCZ4 parameters i.e. the damping
@@ -78,13 +79,31 @@ class CCZ4RHS
     const deriv_t m_deriv;
 
   public:
-    /// Constructor
+    /// Constructor that allows manual construction of the gauge class
     CCZ4RHS(
         params_t a_params,            //!< The CCZ4 parameters
+        const gauge_t &a_gauge,       //!< The gauge class 
         double a_dx,                  //!< The grid spacing
         double a_sigma,               //!< Kreiss-Oliger dissipation coefficient
         int a_formulation = USE_CCZ4, //!< Switches between CCZ4, BSSN,...
         double a_cosmological_constant = 0 //!< Value of the cosmological const.
+    );
+
+    /// Simple constructor when gauge class can be constructed with just a
+    /// params struct. The dummy template parameter and final argument are just
+    /// to remove this constructor from overload resolution when the gauge class
+    /// does not support this type of construction.
+    // MR: There are much nicer ways to do this using C++20
+    template <typename dummy_t = gauge_t>
+    CCZ4RHS(params_t a_params, //!< The CCZ4 parameters
+            double a_dx,       //!< The grid spacing
+            double a_sigma,    //!< Kreiss-Oliger dissipation coefficient
+            int a_formulation = USE_CCZ4, //!< Switches between CCZ4, BSSN,...
+            double a_cosmological_constant =
+                0, //!< Value of the cosmological const.
+            typename std::enable_if_t<
+                std::is_constructible<dummy_t, params_t>::value> * =
+                0 //!< dummy argument for SFINAE
     );
 
     /// Compute function
@@ -112,8 +131,10 @@ class CCZ4RHS
         const diff2_vars_t<Tensor<2, data_t>>
             &d2, //!< The second derivative the variables
         const vars_t<data_t>
-            &advec //!< The advection derivatives of the variables
-    ) const;
+            &advec, //!< The advection derivatives of the variables
+        const Cell<data_t> &current_cell //!< Cell class that can be manipulated in
+                                         //!< in the RHS and gauge class.
+        ) const;
 };
 
 #include "CCZ4RHS.impl.hpp"
