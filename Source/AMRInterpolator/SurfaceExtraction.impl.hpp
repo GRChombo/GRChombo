@@ -62,6 +62,8 @@ SurfaceExtraction<SurfaceGeometry>::SurfaceExtraction(
             }
         }
     }
+
+    m_params.validate_extrapolation_radii();
 }
 
 //! add a single variable or derivative of variable
@@ -414,7 +416,14 @@ void SurfaceExtraction<SurfaceGeometry>::write_integrals(
 {
     if (procID() == 0)
     {
+        std::vector<double> extrapolations =
+            richardson_extrapolation(a_integrals);
+        bool extrapolation_done = extrapolations.size() > 0;
+
         const int num_integrals_per_surface = a_integrals.size();
+        const int total_num_surfaces =
+            m_params.num_surfaces + (extrapolation_done > 0 ? 1 : 0);
+
         // if labels are provided there must be the same number of labels as
         // there are integrals
         if (!a_labels.empty())
@@ -439,13 +448,14 @@ void SurfaceExtraction<SurfaceGeometry>::write_integrals(
         {
             // make header strings
             std::vector<std::string> header1_strings(num_integrals_per_surface *
-                                                     m_params.num_surfaces);
+                                                     total_num_surfaces);
             std::vector<std::string> header2_strings(num_integrals_per_surface *
-                                                     m_params.num_surfaces);
-            for (int isurface = 0; isurface < m_params.num_surfaces; ++isurface)
+                                                     total_num_surfaces);
+            for (int iintegral = 0; iintegral < num_integrals_per_surface;
+                 ++iintegral)
             {
-                for (int iintegral = 0; iintegral < num_integrals_per_surface;
-                     ++iintegral)
+                for (int isurface = 0; isurface < m_params.num_surfaces;
+                     ++isurface)
                 {
                     int idx = isurface * num_integrals_per_surface + iintegral;
                     if (a_labels.empty())
@@ -454,6 +464,14 @@ void SurfaceExtraction<SurfaceGeometry>::write_integrals(
                         header1_strings[idx] = a_labels[iintegral];
                     header2_strings[idx] =
                         std::to_string(m_params.surface_param_values[isurface]);
+                }
+                if (extrapolation_done)
+                {
+                    int idx =
+                        m_params.num_surfaces * num_integrals_per_surface +
+                        iintegral;
+                    header1_strings[idx] = a_labels[iintegral];
+                    header2_strings[idx] = "Infinity";
                 }
             }
             std::string pre_header2_string = m_geom.param_name() + " = ";
@@ -466,14 +484,20 @@ void SurfaceExtraction<SurfaceGeometry>::write_integrals(
 
         // make vector of data for writing
         std::vector<double> data_for_writing(num_integrals_per_surface *
-                                             m_params.num_surfaces);
-        for (int isurface = 0; isurface < m_params.num_surfaces; ++isurface)
+                                             total_num_surfaces);
+        for (int iintegral = 0; iintegral < num_integrals_per_surface;
+             ++iintegral)
         {
-            for (int iintegral = 0; iintegral < num_integrals_per_surface;
-                 ++iintegral)
+            for (int isurface = 0; isurface < m_params.num_surfaces; ++isurface)
             {
                 int idx = isurface * num_integrals_per_surface + iintegral;
                 data_for_writing[idx] = a_integrals[iintegral][isurface];
+            }
+            if (extrapolation_done)
+            {
+                int idx = m_params.num_surfaces * num_integrals_per_surface +
+                          iintegral;
+                data_for_writing[idx] = extrapolations[iintegral];
             }
         }
 
@@ -486,17 +510,97 @@ void SurfaceExtraction<SurfaceGeometry>::write_integrals(
 //! surface
 template <class SurfaceGeometry>
 void SurfaceExtraction<SurfaceGeometry>::write_integral(
-    const std::string &a_filename, const std::vector<double> a_integrals,
-    const std::string a_label) const
+    const std::string &a_filename, const std::vector<double> &a_integrals,
+    const std::string &a_label) const
 {
-    std::vector<std::vector<double>> integrals(1, a_integrals);
-    if (!a_label.empty())
+    write_integrals(a_filename, {a_integrals}, {a_label});
+}
+
+template <class SurfaceGeometry>
+void SurfaceExtraction<
+    SurfaceGeometry>::params_t::validate_extrapolation_radii()
+{
+    std::vector<int> valid_radii;
+    for (int i = 0; i < radii_idxs_for_extrapolation.size(); ++i)
     {
-        std::vector<std::string> labels(1, a_label);
-        write_integrals(a_filename, integrals, labels);
+        // if valid
+        if (radii_idxs_for_extrapolation[i] < num_surfaces &&
+            radii_idxs_for_extrapolation[i] > -num_surfaces)
+        {
+            // allow negative indices, such that '-1' is 'last', '-2' is 'one
+            // before last'
+            if (radii_idxs_for_extrapolation[i] < 0)
+                radii_idxs_for_extrapolation[i] += num_surfaces;
+
+            // if not repeated already
+            if (i == 0 || std::find(radii_idxs_for_extrapolation.begin(),
+                                    radii_idxs_for_extrapolation.begin() + i,
+                                    radii_idxs_for_extrapolation[i]) ==
+                              radii_idxs_for_extrapolation.begin() + i)
+            {
+                valid_radii.push_back(radii_idxs_for_extrapolation[i]);
+            }
+        }
     }
-    else
-        write_integrals(a_filename, integrals);
+    radii_idxs_for_extrapolation = valid_radii;
+}
+
+// function to apply richardson extrapolation of 2nd or 3rd order to calculated
+// integrals
+template <class SurfaceGeometry>
+std::vector<double>
+SurfaceExtraction<SurfaceGeometry>::richardson_extrapolation(
+    const std::vector<std::vector<double>> &integrals) const
+{
+    CH_TIME("SurfaceExtraction::richardson_extrapolation");
+
+    // already validated the radii
+    int extrapolation_order = m_params.radii_idxs_for_extrapolation.size();
+    int num_comps = integrals.size();
+
+    if (extrapolation_order < 2 || num_comps == 0 ||
+        integrals[0].size() < extrapolation_order)
+    {
+        return std::vector<double>();
+    }
+
+    std::vector<double> extrapolations(num_comps);
+
+    if (extrapolation_order == 3)
+    {
+        int i1 = m_params.radii_idxs_for_extrapolation[0];
+        int i2 = m_params.radii_idxs_for_extrapolation[1];
+        int i3 = m_params.radii_idxs_for_extrapolation[2];
+        double r1 = m_params.surface_param_values[i1];
+        double r2 = m_params.surface_param_values[i2];
+        double r3 = m_params.surface_param_values[i3];
+        double c2 = r2 / r1 * (1. - r3 / r1) / (1. - r3 / r2);
+        double c3 = -r3 / r1 * (1. - r2 / r1) / (r2 / r3 - 1.);
+        for (int icomp = 0; icomp < num_comps; ++icomp)
+        {
+            double comp_inf =
+                (integrals[icomp][i1] - c2 * integrals[icomp][i2] -
+                 c3 * integrals[icomp][i3]) /
+                (1. - c2 - c3);
+            extrapolations[icomp] = comp_inf;
+        }
+    }
+    else if (extrapolation_order == 2)
+    {
+        int i1 = m_params.radii_idxs_for_extrapolation[0];
+        int i2 = m_params.radii_idxs_for_extrapolation[1];
+        double r1 = m_params.surface_param_values[i1];
+        double r2 = m_params.surface_param_values[i2];
+        for (int icomp = 0; icomp < num_comps; ++icomp)
+        {
+            double comp_inf =
+                (integrals[icomp][i1] - r2 / r1 * integrals[icomp][i2]) /
+                (1. - r2 / r1);
+            extrapolations[icomp] = comp_inf;
+        }
+    }
+
+    return extrapolations;
 }
 
 #endif /* SURFACEEXTRACTION_IMPL_HPP_ */

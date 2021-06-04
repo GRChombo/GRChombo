@@ -85,6 +85,8 @@ class WeylExtraction : public SphericalExtraction
                 std::move(mode_integrals[imode].second)};
             std::vector<std::string> labels = {"integral Re", "integral Im"};
             write_integrals(integrals_filename, integrals_for_writing, labels);
+            write_integral(integrals_filename, integrals_for_writing[0],
+                           labels[0]);
         }
     }
 };

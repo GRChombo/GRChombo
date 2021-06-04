@@ -93,7 +93,7 @@ class ChomboParameters
         // time stepping outputs and regrid data
         pp.load("checkpoint_interval", checkpoint_interval, 1);
         pp.load("plot_interval", plot_interval, 0);
-        pp.load("stop_time", stop_time, 1.0);
+        pp.load("stop_time", stop_time, 1000000.0);
         pp.load("max_steps", max_steps, 1000000);
 #ifdef CH_USE_HDF5
         pp.load("write_plot_ghosts", write_plot_ghosts, false);

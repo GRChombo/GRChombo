@@ -180,6 +180,9 @@ modes = 2 0 # l m for spherical harmonics
         4 3
         4 4
 
+extraction_extrapolation_order = 3
+extraction_extrapolation_radii = 0 1 2
+
 # integral_file_prefix = "Weyl4_mode_"
 
 # write_extraction = 0

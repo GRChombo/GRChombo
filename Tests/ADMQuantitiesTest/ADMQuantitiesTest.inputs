@@ -1,0 +1,48 @@
+
+#################################################
+# Filesystem parameters
+
+chk_prefix = KerrBH_
+plot_prefix = KerrBHp_
+checkpoint_interval = 1
+
+#################################################
+# Initial Data parameters
+
+kerr_mass = 1.
+kerr_spin = 0.5
+
+#################################################
+# Grid parameters
+
+N_full = 64
+L_full = 128
+
+max_level = 0
+regrid_interval  = 0
+regrid_threshold = 0.3
+
+# Max and min box sizes
+max_box_size = 16
+min_box_size = 16
+
+#################################################
+# Boundary Conditions parameters
+
+isPeriodic = 1 1 1
+
+#################################################
+# Extraction parameters
+
+num_extraction_radii = 3
+extraction_radii = 30. 40. 50.
+extraction_levels = 0 0 0
+num_points_phi = 50
+num_points_theta = 51
+
+extraction_extrapolation_order = 3
+extraction_extrapolation_radii = 0 1 2
+
+#################################################
+
+

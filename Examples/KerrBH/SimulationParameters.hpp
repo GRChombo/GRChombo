@@ -29,6 +29,8 @@ class SimulationParameters : public SimulationParametersBase
         pp.load("kerr_mass", kerr_params.mass);
         pp.load("kerr_spin", kerr_params.spin);
         pp.load("kerr_center", kerr_params.center, center);
+
+        pp.load("activate_extraction", activate_extraction, false);
     }
 
     void check_params()
@@ -51,6 +53,7 @@ class SimulationParameters : public SimulationParametersBase
     }
 
     KerrBH::params_t kerr_params;
+    bool activate_extraction;
 };
 
 #endif /* SIMULATIONPARAMETERS_HPP_ */

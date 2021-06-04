@@ -6,17 +6,18 @@
 # Included makefiles need an absolute path to the Chombo installation
 # CHOMBO_HOME := Please set the CHOMBO_HOME locally (e.g. export CHOMBO_HOME=... in bash)
 
-GRCHOMBO_SOURCE = $(shell pwd)/../../Source
+GRCHOMBO_SOURCE = ../../Source
 
-ebase := SphericalExtractionTest
+ebase := ADMQuantitiesTest
 
 LibNames := AMRTimeDependent AMRTools BoxTools
 
 src_dirs := $(GRCHOMBO_SOURCE)/utils \
             $(GRCHOMBO_SOURCE)/simd  \
-            $(GRCHOMBO_SOURCE)/BoxUtils  \
             $(GRCHOMBO_SOURCE)/CCZ4  \
+            $(GRCHOMBO_SOURCE)/BoxUtils  \
             $(GRCHOMBO_SOURCE)/GRChomboCore  \
-            $(GRCHOMBO_SOURCE)/AMRInterpolator
+            $(GRCHOMBO_SOURCE)/AMRInterpolator \
+            $(GRCHOMBO_SOURCE)/InitialConditions/BlackHoles
 
 include $(CHOMBO_HOME)/mk/Make.test
