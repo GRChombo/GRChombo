@@ -6,28 +6,33 @@
 #ifndef QUINTICCONVOLUTION_IMPL_HPP_
 #define QUINTICCONVOLUTION_IMPL_HPP_
 
-const string QuinticConvolution::TAG = "\x1b[36;1m[QuinticConvolution]\x1b[0m ";
+template <int N_DIMS>
+const string QuinticConvolution<N_DIMS>::TAG =
+    "\x1b[36;1m[QuinticConvolution]\x1b[0m ";
 
-QuinticConvolution::QuinticConvolution(const InterpSource &source,
-                                       bool verbosity)
+template <int N_DIMS>
+QuinticConvolution<N_DIMS>::QuinticConvolution(
+    const InterpSource<N_DIMS> &source, bool verbosity)
     : m_source(source), m_verbosity(verbosity)
 {
-    CH_assert(CH_SPACEDIM <= 3);
+    CH_assert(N_DIMS <= 3);
 }
 
-void QuinticConvolution::setup(const std::array<int, CH_SPACEDIM> &deriv,
-                               const std::array<double, CH_SPACEDIM> &dx,
-                               const std::array<double, CH_SPACEDIM> &evalCoord,
-                               const IntVect &nearest)
+template <int N_DIMS>
+void QuinticConvolution<N_DIMS>::setup(
+    const std::array<int, N_DIMS> &deriv,
+    const std::array<double, N_DIMS> &eval_index)
 {
     m_interp_points.clear();
     m_interp_weights.clear();
 
-    double weights_1d[CH_SPACEDIM][6];
+    std::array<double, N_DIMS> dxs = m_source.get_dxs();
 
-    for (int dim = 0; dim < CH_SPACEDIM; ++dim)
+    double weights_1d[N_DIMS][6];
+
+    for (int dim = 0; dim < N_DIMS; ++dim)
     {
-        double s = evalCoord[dim] - floor(evalCoord[dim]);
+        double s = eval_index[dim] - floor(eval_index[dim]);
 
         if (deriv[dim] == 0)
         {
@@ -56,40 +61,40 @@ void QuinticConvolution::setup(const std::array<int, CH_SPACEDIM> &deriv,
             weights_1d[dim][0] =
                 (0.046875 +
                  s * (-0.375 + s * (0.84375 + (-0.75 + 0.234375 * s) * s))) /
-                dx[dim];
+                dxs[dim];
             weights_1d[dim][1] =
                 (-0.59375 +
                  s * (2.5 + s * (-1.6875 + s * (-1.1875 + 1.015625 * s)))) /
-                dx[dim];
+                dxs[dim];
             weights_1d[dim][2] =
-                (s * (-4.25 + (7.875 - 4.21875 * s) * (s * s))) / dx[dim];
+                (s * (-4.25 + (7.875 - 4.21875 * s) * (s * s))) / dxs[dim];
             weights_1d[dim][3] =
                 (0.59375 + s * (2.5 + s * (1.6875 + s * (-9. + 4.21875 * s)))) /
-                dx[dim];
+                dxs[dim];
             weights_1d[dim][4] =
                 (-0.046875 +
                  s * (-0.375 + s * (-0.84375 + (2.875 - 1.015625 * s) * s))) /
-                dx[dim];
+                dxs[dim];
             weights_1d[dim][5] =
-                ((0.1875 - 0.234375 * s) * s * (s * s)) / dx[dim];
+                ((0.1875 - 0.234375 * s) * s * (s * s)) / dxs[dim];
         }
         else if (deriv[dim] == 2)
         {
             weights_1d[dim][0] =
                 (-0.375 + s * (1.6875 + (-2.25 + 0.9375 * s) * s)) /
-                (dx[dim] * dx[dim]);
+                (dxs[dim] * dxs[dim]);
             weights_1d[dim][1] =
                 (2.5 + s * (-3.375 + s * (-3.5625 + 4.0625 * s))) /
-                (dx[dim] * dx[dim]);
-            weights_1d[dim][2] =
-                (-4.25 + (23.625 - 16.875 * s) * (s * s)) / (dx[dim] * dx[dim]);
+                (dxs[dim] * dxs[dim]);
+            weights_1d[dim][2] = (-4.25 + (23.625 - 16.875 * s) * (s * s)) /
+                                 (dxs[dim] * dxs[dim]);
             weights_1d[dim][3] = (2.5 + s * (3.375 + s * (-27. + 16.875 * s))) /
-                                 (dx[dim] * dx[dim]);
+                                 (dxs[dim] * dxs[dim]);
             weights_1d[dim][4] =
                 (-0.375 + s * (-1.6875 + (8.625 - 4.0625 * s) * s)) /
-                (dx[dim] * dx[dim]);
+                (dxs[dim] * dxs[dim]);
             weights_1d[dim][5] =
-                ((0.5625 - 0.9375 * s) * (s * s)) / (dx[dim] * dx[dim]);
+                ((0.5625 - 0.9375 * s) * (s * s)) / (dxs[dim] * dxs[dim]);
         }
         else
         {
@@ -98,36 +103,48 @@ void QuinticConvolution::setup(const std::array<int, CH_SPACEDIM> &deriv,
         }
     }
 
-    std::array<double, CH_SPACEDIM> interp_coord;
+    std::array<double, N_DIMS> interp_index;
 
-#if CH_SPACEDIM >= 3
+#if N_DIMS >= 3
     for (int z = 0; z < 6; ++z)
     {
-        interp_coord[2] = floor(evalCoord[2]) + z - 2;
+        interp_index[2] = floor(eval_index[2]) + z - 2;
 #endif
+#if N_DIMS >= 2
         for (int y = 0; y < 6; ++y)
         {
-            interp_coord[1] = floor(evalCoord[1]) + y - 2;
+            interp_index[1] = floor(eval_index[1]) + y - 2;
+#endif
 
             for (int x = 0; x < 6; ++x)
             {
-                interp_coord[0] = floor(evalCoord[0]) + x - 2;
-                CH_assert(m_source.contains(interp_coord));
+                interp_index[0] = floor(eval_index[0]) + x - 2;
+                CH_assert(m_source.contains(interp_index));
 
                 m_interp_points.push_back(IntVect(D_DECL6(
-                    interp_coord[0], interp_coord[1], interp_coord[2],
-                    interp_coord[3], interp_coord[4], interp_coord[5])));
-                m_interp_weights.push_back(D_TERM6(weights_1d[0][x],
-                                                   *weights_1d[1][y],
-                                                   *weights_1d[2][z], , , ));
+                    interp_index[0], interp_index[1], interp_index[2],
+                    interp_index[3], interp_index[4], interp_index[5])));
+#if N_DIMS >= 3
+                m_interp_weights.push_back(weights_1d[0][x] * weights_1d[1][y] *
+                                           weights_1d[2][z]);
+#elif N_DIMS >= 2
+        m_interp_weights.push_back(weights_1d[0][x] * weights_1d[1][y]);
+#else
+        m_interp_weights.push_back(weights_1d[0][x]);
+#endif
             }
+#if N_DIMS >= 2
         }
-#if CH_SPACEDIM >= 3
+#endif
+#if N_DIMS >= 3
     }
 #endif
 }
 
-double QuinticConvolution::interpData(const FArrayBox &fab, int comp)
+template <int N_DIMS>
+template <class GeneralArrayBox>
+double QuinticConvolution<N_DIMS>::interpData(const GeneralArrayBox &fab,
+                                              int comp)
 {
     long double accum = 0.0;
 

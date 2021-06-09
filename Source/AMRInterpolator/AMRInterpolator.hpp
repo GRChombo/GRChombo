@@ -12,15 +12,12 @@
 
 // Chombo includes
 #include "AMRLevel.H"
+#include "LoHiSide.H"
 
 // Our includes
 #include "BoundaryConditions.hpp"
 #include "GRAMR.hpp"
-#include "InterpSource.hpp"
-#include "InterpolationAlgorithm.hpp"
-#include "InterpolationLayout.hpp"
 #include "InterpolationQuery.hpp"
-
 #include "MPIContext.hpp"
 #include "UserVariables.hpp"
 
@@ -31,6 +28,19 @@
 
 template <typename InterpAlgo> class AMRInterpolator
 {
+    struct InterpolationLayout
+    {
+        std::vector<int> rank;
+        std::vector<int> level_idx;
+        std::vector<int> box_idx;
+
+        InterpolationLayout(int num_points)
+            : rank(num_points, -1), level_idx(num_points, -1),
+              box_idx(num_points, -1)
+        {
+        }
+    };
+
   public:
     // constructor for backward compatibility
     // (adds an artificial BC with only periodic BC)
@@ -56,15 +66,17 @@ template <typename InterpAlgo> class AMRInterpolator
     void limit_num_levels(unsigned int num_levels);
     void interp(InterpolationQuery &query);
     const AMR &getAMR() const;
-    const std::array<double, CH_SPACEDIM> &get_coarsest_dx();
-    const std::array<double, CH_SPACEDIM> &get_coarsest_origin();
+    const std::array<double, CH_SPACEDIM> &get_coarsest_dx() const;
+    const std::array<double, CH_SPACEDIM> &get_coarsest_origin() const;
+    bool get_boundary_reflective(Side::LoHiSide a_side, int a_dir) const;
+    bool get_boundary_periodic(int a_dir) const;
 
   private:
     void computeLevelLayouts();
     InterpolationLayout findBoxes(InterpolationQuery &query);
 
     void prepareMPI(InterpolationQuery &query,
-                    const InterpolationLayout layout);
+                    const InterpolationLayout &layout);
     void exchangeMPIQuery();
     void calculateAnswers(InterpolationQuery &query);
     void exchangeMPIAnswer();

@@ -11,6 +11,8 @@ GRAMR::GRAMR() : m_interpolator(nullptr) {}
 // Called after AMR object set up
 void GRAMR::set_interpolator(AMRInterpolator<Lagrange<4>> *a_interpolator)
 {
+    // check AMRInterpolator was set
+    CH_assert(a_interpolator != nullptr);
     m_interpolator = a_interpolator;
 }
 

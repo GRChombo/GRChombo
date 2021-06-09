@@ -65,6 +65,9 @@ class GRAMR : public AMR
     // const version of above
     std::vector<const GRAMRLevel *> get_gramrlevels() const;
 
+    int get_max_level() const { return m_max_level; }
+    int get_restart_step() const { return m_restart_step; }
+
     // Fill ghosts on multiple levels
     void fill_multilevel_ghosts(
         const VariableType a_var_type,

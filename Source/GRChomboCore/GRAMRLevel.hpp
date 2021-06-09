@@ -28,7 +28,7 @@
 // Chombo namespace
 #include "UsingNamespace.H"
 
-class GRAMRLevel : public AMRLevel, public InterpSource
+class GRAMRLevel : public AMRLevel, public InterpSource<>
 {
   public:
     GRAMRLevel(GRAMR &gr_amr, const SimulationParameters &a_p, int a_verbosity);
@@ -165,7 +165,8 @@ class GRAMRLevel : public AMRLevel, public InterpSource
     {
     }
 
-    double get_dx() const;
+    // direction irrelevant, but relevant for InterpSource
+    ALWAYS_INLINE double get_dx(int dir = 0) const { return m_dx; };
 
     /// Returns true if m_time is the same as the time at the end of the current
     /// timestep on level a_level and false otherwise

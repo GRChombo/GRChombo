@@ -9,9 +9,9 @@
 #include "InterpSource.hpp"
 #include <utility>
 
-template <int Order> class Lagrange
+template <int Order, int N_DIMS = CH_SPACEDIM> class Lagrange
 {
-    const InterpSource &m_source;
+    const InterpSource<N_DIMS> &m_source;
     bool m_verbosity;
 
     struct Stencil;
@@ -41,10 +41,10 @@ template <int Order> class Lagrange
     // Helper function to generate tensor product weights
     // Argument 'dim' is used for recursion over dimensions.
     pair<std::vector<IntVect>, std::vector<double>>
-    generateStencil(const std::array<int, CH_SPACEDIM> &deriv,
-                    const std::array<double, CH_SPACEDIM> &dx,
-                    const std::array<double, CH_SPACEDIM> &evalCoord,
-                    const IntVect &nearest, int dim = CH_SPACEDIM - 1);
+    generateStencil(const std::array<int, N_DIMS> &deriv,
+                    const std::array<double, N_DIMS> &dx,
+                    const std::array<double, N_DIMS> &eval_index,
+                    int dim = N_DIMS - 1);
 
     std::vector<IntVect> m_interp_points;
     std::vector<double> m_interp_weights;
@@ -56,13 +56,16 @@ template <int Order> class Lagrange
     multiset<double> m_interp_pos;
 
   public:
-    Lagrange(const InterpSource &source, bool verbosity = false);
+    Lagrange(const InterpSource<N_DIMS> &source, bool verbosity = false);
 
-    void setup(const std::array<int, CH_SPACEDIM> &deriv,
-               const std::array<double, CH_SPACEDIM> &dx,
-               const std::array<double, CH_SPACEDIM> &evalCoord,
-               const IntVect &nearest);
-    double interpData(const FArrayBox &fab, int comp);
+    // eval_index is in 'index' coordinates, not physical coordinates
+    void setup(const std::array<int, N_DIMS> &deriv,
+               const std::array<double, N_DIMS> &eval_index);
+
+    // any class with a method:
+    // Real get(const IntVect &a_iv, int a_comp) const
+    template <class GeneralArrayBox>
+    double interpData(const GeneralArrayBox &fab, int comp = 0);
 
     const static string TAG;
 };

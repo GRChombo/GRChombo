@@ -221,30 +221,27 @@ void GRAMRLevel::tagCells(IntVectSet &a_tags)
         const IntVect &smallEnd = b.smallEnd();
         const IntVect &bigEnd = b.bigEnd();
 
-        const int xmin = smallEnd[0];
-        const int ymin = smallEnd[1];
-        const int zmin = smallEnd[2];
+        D_TERM(const int xmin = smallEnd[0];, const int ymin = smallEnd[1];
+               , const int zmin = smallEnd[2];)
 
-        const int xmax = bigEnd[0];
-        const int ymax = bigEnd[1];
-        const int zmax = bigEnd[2];
+        D_TERM(const int xmax = bigEnd[0];, const int ymax = bigEnd[1];
+               , const int zmax = bigEnd[2];)
 
-#pragma omp parallel for collapse(3) schedule(static) default(shared)
-        for (int iz = zmin; iz <= zmax; ++iz)
-            for (int iy = ymin; iy <= ymax; ++iy)
-                for (int ix = xmin; ix <= xmax; ++ix)
-                {
-                    IntVect iv(ix, iy, iz);
-                    if (tagging_criterion(iv, 0) >=
-                        m_p.regrid_thresholds[m_level])
-                    {
+#pragma omp parallel for collapse(CH_SPACEDIM) schedule(static) default(shared)
+        D_INVTERM(for (int ix = xmin; ix <= xmax; ++ix),
+                  for (int iy = ymin; iy <= ymax; ++iy),
+                  for (int iz = zmin; iz <= zmax; ++iz))
+        {
+            IntVect iv(D_DECL(ix, iy, iz));
+            if (tagging_criterion(iv, 0) >= m_p.regrid_thresholds[m_level])
+            {
 // local_tags |= is not thread safe.
 #pragma omp critical
-                        {
-                            local_tags |= iv;
-                        }
-                    }
+                {
+                    local_tags |= iv;
                 }
+            }
+        }
     }
 
     local_tags.grow(m_p.tag_buffer_size);
@@ -984,8 +981,6 @@ void GRAMRLevel::copySolnData(GRLevelData &dest, const GRLevelData &src)
     // cells outside the domain are not copied by default
     copyBdyGhosts(src, dest);
 }
-
-double GRAMRLevel::get_dx() const { return m_dx; }
 
 bool GRAMRLevel::at_level_timestep_multiple(int a_level) const
 {
