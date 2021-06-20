@@ -70,10 +70,17 @@ class IntegrationMethod
             return m_weights[weight_index];
     }
 
+    // Closed default methods
     static const IntegrationMethod trapezium;
-    static const IntegrationMethod midpoint;
     static const IntegrationMethod simpson;
+    static const IntegrationMethod simpson38;
     static const IntegrationMethod boole;
+
+    // Open default methods
+    static const IntegrationMethod midpoint;
+    static const IntegrationMethod open_2nd_order;
+    static const IntegrationMethod open_3rd_order;
+    static const IntegrationMethod open_4th_order;
 };
 
 #endif /* INTEGRATIONMETHOD_HPP_ */

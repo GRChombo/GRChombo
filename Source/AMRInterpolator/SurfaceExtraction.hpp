@@ -29,44 +29,44 @@
 // Chombo namespace
 #include "UsingNamespace.H"
 
+struct surface_extraction_params_t
+{
+    int num_surfaces; //!< number of surfaces over which to extraction
+    std::vector<double>
+        surface_param_values; //!< the values of the
+                              //!< parameter that gives the required
+                              //!< surfaces with SurfaceGeom geometry (e.g.
+                              //!< radii for spherical shells)
+    int num_points_u;         //!< the number of points for the first parameter
+                              //!< that parameterises each surface
+    int num_points_v;         //!< the number of points for the second parameter
+                              //!< that parameterises each surfaces
+    std::vector<int> extraction_levels; //!< the level on which to do the
+                                        //!< extraction for each surface
+    bool write_extraction; //!< whether or not to write the extracted data
+
+    std::string data_path, integral_file_prefix;
+    std::string extraction_path, extraction_file_prefix;
+
+    int min_extraction_level() const
+    {
+        return *(std::min_element(extraction_levels.begin(),
+                                  extraction_levels.end()));
+    }
+};
+
 //! This class extracts grid variables on 2 dimensional surfaces each
 //! parameterised by u and v with different surfaces given by level sets of
 //! another parameter
 template <class SurfaceGeometry> class SurfaceExtraction
 {
   public:
-    struct params_t
-    {
-        int num_surfaces; //!< number of surfaces over which to extraction
-        std::vector<double>
-            surface_param_values; //!< the values of the
-                                  //!< parameter that gives the required
-                                  //!< surfaces with SurfaceGeom geometry (e.g.
-                                  //!< radii for spherical shells)
-        int num_points_u; //!< the number of points for the first parameter
-                          //!< that parameterises each surface
-        int num_points_v; //!< the number of points for the second parameter
-                          //!< that parameterises each surfaces
-        std::vector<int> extraction_levels; //!< the level on which to do the
-                                            //!< extraction for each surface
-        bool write_extraction; //!< whether or not to write the extracted data
-
-        std::string data_path, integral_file_prefix;
-        std::string extraction_path, extraction_file_prefix;
-
-        int min_extraction_level()
-        {
-            return *(std::min_element(extraction_levels.begin(),
-                                      extraction_levels.end()));
-        }
-    };
-
     using vars_t = std::tuple<int, VariableType, Derivative>;
 
   protected:
     const SurfaceGeometry m_geom; //!< the geometry class which knows about
                                   //!< the particular surface
-    const params_t m_params;
+    const surface_extraction_params_t m_params;
     std::vector<std::tuple<int, VariableType, Derivative>>
         m_vars; //!< the vector of pairs of
     //!< variables and derivatives to extract
@@ -96,17 +96,25 @@ template <class SurfaceGeometry> class SurfaceExtraction
 
     //! returns the flattened index for m_interp_data and m_interp_coords
     //! associated to given surface, u and v indices
+#if CH_SPACEDIM == 3
     int index(int a_isurface, int a_iu, int a_iv) const
     {
         return a_isurface * m_params.num_points_u * m_params.num_points_v +
                a_iu * m_params.num_points_v + a_iv;
     }
+#elif CH_SPACEDIM == 2
+    int index(int a_isurface, int a_iu) const
+    {
+        return a_isurface * m_params.num_points_u + a_iu;
+    }
+#endif
 
   public:
     //! Normal constructor which requires vars to be added after construction
     //! using add_var or add_vars
-    SurfaceExtraction(const SurfaceGeometry &a_geom, const params_t &a_params,
-                      double a_dt, double a_time, bool a_first_step,
+    SurfaceExtraction(const SurfaceGeometry &a_geom,
+                      const surface_extraction_params_t &a_params, double a_dt,
+                      double a_time, bool a_first_step,
                       double a_restart_time = 0.0);
 
     //! add a single variable or derivative of variable
@@ -126,14 +134,16 @@ template <class SurfaceGeometry> class SurfaceExtraction
     //! Alternative constructor with a predefined vector of variables and
     //! derivatives
     SurfaceExtraction(
-        const SurfaceGeometry &a_geom, const params_t &a_params,
+        const SurfaceGeometry &a_geom,
+        const surface_extraction_params_t &a_params,
         const std::vector<std::tuple<int, VariableType, Derivative>> &a_vars,
         double a_dt, double a_time, bool a_first_step,
         double a_restart_time = 0.0);
 
     //! Another alternative constructor with a predefined vector of variables
     //! no derivatives
-    SurfaceExtraction(const SurfaceGeometry &a_geom, const params_t &a_params,
+    SurfaceExtraction(const SurfaceGeometry &a_geom,
+                      const surface_extraction_params_t &a_params,
                       const std::vector<int> &a_vars, double a_dt,
                       double a_time, bool a_first_step,
                       double a_restart_time = 0.0);

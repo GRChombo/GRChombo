@@ -20,7 +20,7 @@ class ChiExtractionTaggingCriterion
   protected:
     const double m_dx;
     const FourthOrderDerivatives m_deriv;
-    const SphericalExtraction::params_t m_params;
+    const spherical_extraction_params_t m_params;
     const int m_level;
     const bool m_activate_extraction;
 
@@ -40,14 +40,14 @@ class ChiExtractionTaggingCriterion
 
     // The constructor
     ChiExtractionTaggingCriterion(const double dx, const int a_level,
-                                  const SphericalExtraction::params_t a_params,
+                                  const spherical_extraction_params_t a_params,
                                   const bool activate_extraction = false)
         : m_dx(dx), m_deriv(dx), m_params(a_params), m_level(a_level),
           m_activate_extraction(activate_extraction){};
     // below is a constructor for backward compatibility
     ChiExtractionTaggingCriterion(const double dx, const int a_level,
                                   const int a_max_level,
-                                  const SphericalExtraction::params_t a_params,
+                                  const spherical_extraction_params_t a_params,
                                   const bool activate_extraction = false)
         : ChiExtractionTaggingCriterion(dx, a_level, a_params,
                                         activate_extraction){};

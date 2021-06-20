@@ -1,5 +1,5 @@
 verbosity = 0
-N = 32
+N = 64
 L = 16
 
 chk_prefix = TestChk_
@@ -19,9 +19,11 @@ checkpoint_interval = 1
 num_extraction_radii = 2
 extraction_radii = 4. 6.
 num_points_phi_lo = 12
-num_points_theta_lo = 13 # choose "multiple of 3 and of 4" + 1, to be compatible with Simpson, Simpson 3/8 and with Boole
+num_points_theta_lo = 12 # multiple of 3 for Milne's method, 
+						 # must be multiple of 4 for 3rd order 
+						 # and of 5 for the 4th order open method
 
 # Spherical Harmonic to set and extract
 es = 0
-el = 2
+el = 3 # 2 was too easy for the 4th order method and not give convergence
 em = 0

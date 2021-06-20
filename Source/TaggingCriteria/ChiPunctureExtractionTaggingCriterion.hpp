@@ -26,7 +26,7 @@ class ChiPunctureExtractionTaggingCriterion
     const bool m_track_punctures;
     const bool m_activate_extraction;
     const FourthOrderDerivatives m_deriv;
-    const SphericalExtraction::params_t m_params;
+    const spherical_extraction_params_t m_params;
     const std::vector<double> m_puncture_masses;
     const std::vector<std::array<double, CH_SPACEDIM>> &m_puncture_coords;
 
@@ -47,7 +47,7 @@ class ChiPunctureExtractionTaggingCriterion
     // The constructor
     ChiPunctureExtractionTaggingCriterion(
         const double dx, const int a_level, const int a_max_level,
-        const SphericalExtraction::params_t a_params,
+        const spherical_extraction_params_t a_params,
         const std::vector<std::array<double, CH_SPACEDIM>> &a_puncture_coords,
         const bool activate_extraction = false,
         const bool track_punctures = false,

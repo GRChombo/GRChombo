@@ -11,11 +11,11 @@
 #include "CCZ4RHS.hpp"
 #include "ChomboParameters.hpp"
 #include "GRParmParse.hpp"
-#include "SphericalExtraction.hpp"
 #include <limits>
 
+#include "SphericalExtraction.hpp"
 // add this type alias here for backwards compatibility
-using extraction_params_t = SphericalExtraction::params_t;
+using extraction_params_t = spherical_extraction_params_t;
 
 class SimulationParametersBase : public ChomboParameters
 {
@@ -141,11 +141,16 @@ class SimulationParametersBase : public ChomboParameters
                     false);
 
             std::string extraction_path;
-            pp.load("extraction_subpath", extraction_path, data_path);
-            if (!extraction_path.empty() && extraction_path.back() != '/')
-                extraction_path += "/";
-            if (output_path != "./" && !output_path.empty())
-                extraction_path = output_path + extraction_path;
+            if (pp.contains("extraction_subpath"))
+            {
+                pp.load("extraction_subpath", extraction_path);
+                if (!extraction_path.empty() && extraction_path.back() != '/')
+                    extraction_path += "/";
+                if (output_path != "./" && !output_path.empty())
+                    extraction_path = output_path + extraction_path;
+            }
+            else
+                extraction_path = data_path;
 
             extraction_params.data_path = data_path;
             extraction_params.extraction_path = extraction_path;
@@ -315,7 +320,7 @@ class SimulationParametersBase : public ChomboParameters
     CCZ4_params_t<> ccz4_params;
 
     bool activate_extraction;
-    SphericalExtraction::params_t extraction_params;
+    spherical_extraction_params_t extraction_params;
 
     std::string data_path;
 };

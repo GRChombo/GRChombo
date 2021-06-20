@@ -8,7 +8,7 @@
 
 GRCHOMBO_SOURCE = $(shell pwd)/../../Source
 
-ebase := SphericalExtractionTest
+ebase := SphericalExtractionUniformTest
 
 LibNames := AMRTimeDependent AMRTools BoxTools
 

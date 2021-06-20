@@ -13,7 +13,7 @@
 class CylindricalExtraction : public SurfaceExtraction<CylindricalGeometry>
 {
   public:
-    struct params_t : SurfaceExtraction::params_t
+    struct params_t : surface_extraction_params_t
     {
         int &num_extraction_radii = num_surfaces;
         std::vector<double> &extraction_radii = surface_param_values;

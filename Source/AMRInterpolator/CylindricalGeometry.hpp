@@ -32,36 +32,43 @@ class CylindricalGeometry
     {
     }
 
+    ALWAYS_INLINE double get_domain_u_min() const { return 0.; }
+    ALWAYS_INLINE double get_domain_u_max() const { return m_z_length; }
+    ALWAYS_INLINE double get_domain_v_min() const { return 0.; }
+    ALWAYS_INLINE double get_domain_v_max() const { return 2. * M_PI; }
+
     //! returns the grid spacing in z
-    inline double du(int a_num_points_z) const
+    ALWAYS_INLINE double du(int a_num_points_z) const
     {
-        return m_z_length / (a_num_points_z - 1);
+        return (get_domain_u_max() - get_domain_u_min()) / (a_num_points_z - 1);
     }
 
     //! returns the grid spacing in phi
-    inline double dv(int a_num_points_phi) const
+    ALWAYS_INLINE double dv(int a_num_points_phi) const
     {
-        return 2.0 * M_PI / ((double)a_num_points_phi);
+        return (get_domain_v_max() - get_domain_v_min()) /
+               ((double)a_num_points_phi);
     }
 
     //! returns the z coordinate associated to the theta/u index
-    inline double u(int a_iz, int a_num_points_z) const
+    ALWAYS_INLINE double u(int a_iz, int a_num_points_z) const
     {
-        return a_iz * du(a_num_points_z) - (m_z_length / 2.0);
+        return a_iz * du(a_num_points_z) -
+               ((get_domain_v_max() - get_domain_v_min()) / 2.0);
     }
 
     //! returns the phi coordinate associated to the phi/v index
-    inline double v(int a_iphi, int a_num_points_phi) const
+    ALWAYS_INLINE double v(int a_iphi, int a_num_points_phi) const
     {
         return a_iphi * dv(a_num_points_phi);
     }
 
-    inline bool is_u_periodic() const { return false; }
-    inline bool is_v_periodic() const { return true; }
+    static ALWAYS_INLINE bool is_u_periodic() { return false; }
+    static ALWAYS_INLINE bool is_v_periodic() { return true; }
     //! returns the Cartesian coordinate in direction a_dir with specified
     //! radius, z and phi.
-    inline double get_grid_coord(int a_dir, double a_radius, double a_z,
-                                 double a_phi) const
+    ALWAYS_INLINE double get_grid_coord(int a_dir, double a_radius, double a_z,
+                                        double a_phi) const
     {
         switch (a_dir)
         {
@@ -78,16 +85,15 @@ class CylindricalGeometry
 
     //! returns the area element on a cylinder with radius a_radius at the point
     //! (a_z, a_phi)
-    inline double area_element(double a_radius, double a_z, double a_phi) const
+    static ALWAYS_INLINE double area_element(double a_radius, double a_z,
+                                             double a_phi)
     {
         return a_radius;
     }
 
-    inline std::string param_name() const { return "r"; }
-
-    inline std::string u_name() const { return "z"; }
-
-    inline std::string v_name() const { return "phi"; }
+    static ALWAYS_INLINE std::string param_name() { return "r"; }
+    static ALWAYS_INLINE std::string u_name() { return "z"; }
+    static ALWAYS_INLINE std::string v_name() { return "phi"; }
 };
 
 #endif /* CYLINDRICALGEOMETRY_HPP_ */

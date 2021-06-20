@@ -7,67 +7,72 @@
 #define SPHERICALEXTRACTION_HPP_
 
 #include "SphericalGeometry.hpp"
+#include "SphericalGeometryUniform.hpp"
 #include "SphericalHarmonics.hpp"
 #include "SurfaceExtraction.hpp"
 
+struct spherical_extraction_params_t : surface_extraction_params_t
+{
+    int &num_extraction_radii = num_surfaces;
+    std::vector<double> &extraction_radii = surface_param_values;
+    int &num_points_theta = num_points_u;
+    int &num_points_phi = num_points_v;
+    std::array<double, CH_SPACEDIM> center; //!< the center of the spherical
+                                            //!< shells
+    std::array<double, CH_SPACEDIM> &extraction_center = center;
+    int num_modes;                          //!< the number of modes to extract
+    std::vector<std::pair<int, int>> modes; //!< the modes to extract
+                                            //!< l = first, m = second
+    // constructor
+    spherical_extraction_params_t() = default;
+
+    // copy constructor defined due to references pointing to the wrong
+    // things with the default copy constructor
+    spherical_extraction_params_t(const spherical_extraction_params_t &params)
+        : surface_extraction_params_t(params), center(params.center),
+          num_modes(params.num_modes), modes(params.modes)
+    {
+    }
+};
+
 //! A child class of SurfaceExtraction for extraction on spherical shells
-class SphericalExtraction : public SurfaceExtraction<SphericalGeometry>
+template <typename spherical_geometry>
+class ModeExtraction : public SurfaceExtraction<spherical_geometry>
 {
   public:
-    struct params_t : SurfaceExtraction::params_t
-    {
-        int &num_extraction_radii = num_surfaces;
-        std::vector<double> &extraction_radii = surface_param_values;
-        int &num_points_theta = num_points_u;
-        int &num_points_phi = num_points_v;
-        std::array<double, CH_SPACEDIM> center; //!< the center of the spherical
-                                                //!< shells
-        std::array<double, CH_SPACEDIM> &extraction_center = center;
-        int num_modes; //!< the number of modes to extract
-        std::vector<std::pair<int, int>> modes; //!< the modes to extract
-                                                //!< l = first, m = second
-        // constructor
-        params_t() = default;
-
-        // copy constructor defined due to references pointing to the wrong
-        // things with the default copy constructor
-        params_t(const params_t &params)
-            : SurfaceExtraction::params_t(params), center(params.center),
-              num_modes(params.num_modes), modes(params.modes)
-        {
-        }
-    };
     const std::array<double, CH_SPACEDIM> m_center;
     const int m_num_modes;
     const std::vector<std::pair<int, int>> m_modes;
 
-    SphericalExtraction(const params_t &a_params, double a_dt, double a_time,
-                        bool a_first_step, double a_restart_time = 0.0)
-        : SurfaceExtraction(a_params.center, a_params, a_dt, a_time,
-                            a_first_step, a_restart_time),
+    using vars_t = SurfaceExtraction<spherical_geometry>;
+
+    ModeExtraction(const spherical_extraction_params_t &a_params, double a_dt,
+                   double a_time, bool a_first_step,
+                   double a_restart_time = 0.0)
+        : SurfaceExtraction<spherical_geometry>(a_params.center, a_params, a_dt,
+                                                a_time, a_first_step,
+                                                a_restart_time),
           m_center(a_params.center), m_num_modes(a_params.num_modes),
           m_modes(a_params.modes)
     {
     }
 
-    SphericalExtraction(const params_t &a_params,
-                        const std::vector<vars_t> &a_vars, double a_dt,
-                        double a_time, bool a_first_step,
-                        double a_restart_time = 0.0)
-        : SphericalExtraction(a_params, a_dt, a_time, a_first_step,
-                              a_restart_time)
+    ModeExtraction(const spherical_extraction_params_t &a_params,
+                   const std::vector<vars_t> &a_vars, double a_dt,
+                   double a_time, bool a_first_step,
+                   double a_restart_time = 0.0)
+        : ModeExtraction(a_params, a_dt, a_time, a_first_step, a_restart_time)
     {
-        add_vars(a_vars);
+        this->add_vars(a_vars);
     }
 
-    SphericalExtraction(const params_t &a_params,
-                        const std::vector<int> &a_evolution_vars, double a_dt,
-                        double a_time, bool a_first_step,
-                        double a_restart_time = 0.0)
-        : SphericalExtraction(a_params, a_dt, a_time, a_first_step,
-                              a_restart_time)
+    ModeExtraction(const spherical_extraction_params_t &a_params,
+                   const std::vector<int> &a_evolution_vars, double a_dt,
+                   double a_time, bool a_first_step,
+                   double a_restart_time = 0.0)
+        : ModeExtraction(a_params, a_dt, a_time, a_first_step, a_restart_time)
     {
-        add_evolution_vars(a_evolution_vars);
+        this->add_evolution_vars(a_evolution_vars);
     }
 
     // alias this long type used for complex functions defined on the surface
@@ -85,14 +90,21 @@ class SphericalExtraction : public SurfaceExtraction<SphericalGeometry>
         const IntegrationMethod &a_method_phi = IntegrationMethod::trapezium,
         const bool a_broadcast_integral = false)
     {
-        auto integrand_re = [center = m_center, &geom = m_geom, es, el, em,
+        // {x, y, z}
+        SphericalGeometry::UP_DIR up_dir = this->m_geom.get_up_dir();
+        std::array<int, 3> dirs = {(up_dir + 1) % 3, (up_dir + 2) % 3, up_dir};
+        std::array<double, 3> center;
+        for (int i = 0; i < 3; ++i)
+            center[i] = (dirs[i] < CH_SPACEDIM ? m_center[dirs[i]] : 0.);
+
+        auto integrand_re = [dirs, center, &geom = this->m_geom, es, el, em,
                              &a_function](std::vector<double> &a_data_here,
                                           double r, double theta, double phi) {
             // note that spin_Y_lm requires the coordinates with the center
             // at the origin
-            double x = geom.get_grid_coord(0, r, theta, phi) - center[0];
-            double y = geom.get_grid_coord(1, r, theta, phi) - center[1];
-            double z = geom.get_grid_coord(2, r, theta, phi) - center[2];
+            double x = geom.get_grid_coord(dirs[0], r, theta, phi) - center[0];
+            double y = geom.get_grid_coord(dirs[1], r, theta, phi) - center[1];
+            double z = geom.get_grid_coord(dirs[2], r, theta, phi) - center[2];
             SphericalHarmonics::Y_lm_t<double> Y_lm =
                 SphericalHarmonics::spin_Y_lm(x, y, z, es, el, em);
             auto function_here = a_function(a_data_here, r, theta, phi);
@@ -100,17 +112,17 @@ class SphericalExtraction : public SurfaceExtraction<SphericalGeometry>
                     function_here.second * Y_lm.Im) /
                    (r * r);
         };
-        add_integrand(integrand_re, out_integrals.first, a_method_theta,
-                      a_method_phi, a_broadcast_integral);
+        this->add_integrand(integrand_re, out_integrals.first, a_method_theta,
+                            a_method_phi, a_broadcast_integral);
 
-        auto integrand_im = [center = m_center, &geom = m_geom, es, el, em,
+        auto integrand_im = [dirs, center, &geom = this->m_geom, es, el, em,
                              &a_function](std::vector<double> &a_data_here,
                                           double r, double theta, double phi) {
             // note that spin_Y_lm requires the coordinates with the center
             // at the origin
-            double x = geom.get_grid_coord(0, r, theta, phi) - center[0];
-            double y = geom.get_grid_coord(1, r, theta, phi) - center[1];
-            double z = geom.get_grid_coord(2, r, theta, phi) - center[2];
+            double x = geom.get_grid_coord(dirs[0], r, theta, phi) - center[0];
+            double y = geom.get_grid_coord(dirs[0], r, theta, phi) - center[1];
+            double z = geom.get_grid_coord(dirs[0], r, theta, phi) - center[2];
             SphericalHarmonics::Y_lm_t<double> Y_lm =
                 SphericalHarmonics::spin_Y_lm(x, y, z, es, el, em);
             auto function_here = a_function(a_data_here, r, theta, phi);
@@ -118,8 +130,8 @@ class SphericalExtraction : public SurfaceExtraction<SphericalGeometry>
                     function_here.first * Y_lm.Im) /
                    (r * r);
         };
-        add_integrand(integrand_im, out_integrals.second, a_method_theta,
-                      a_method_phi, a_broadcast_integral);
+        this->add_integrand(integrand_im, out_integrals.second, a_method_theta,
+                            a_method_phi, a_broadcast_integral);
     }
 
     //! If you only want to extract one mode, you can use this function which
@@ -129,16 +141,19 @@ class SphericalExtraction : public SurfaceExtraction<SphericalGeometry>
         const IntegrationMethod &a_method_theta = IntegrationMethod::simpson,
         const IntegrationMethod &a_method_phi = IntegrationMethod::trapezium)
     {
-        m_integrands.clear();
-        m_integration_methods.clear();
-        m_integrals.clear();
+        this->m_integrands.clear();
+        this->m_integration_methods.clear();
+        this->m_integrals.clear();
 
         std::pair<std::vector<double>, std::vector<double>> integrals;
         add_mode_integrand(es, el, em, a_function, integrals, a_method_theta,
                            a_method_phi);
-        integrate();
+        this->integrate();
         return integrals;
     }
 };
+
+using SphericalExtraction = ModeExtraction<SphericalGeometry>;
+using SphericalExtractionUniform = ModeExtraction<SphericalGeometryUniform>;
 
 #endif /* SPHERICALEXTRACTION_HPP_ */
